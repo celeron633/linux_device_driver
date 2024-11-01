@@ -1,4 +1,4 @@
-KERNELDIR := /home/dengxh/linux-source-6.1
+KERNELDIR := /lib/modules/$(shell uname -r)/build
 CURRENT_PATH := $(shell pwd)
 
 obj-m := chrdevbase.o
