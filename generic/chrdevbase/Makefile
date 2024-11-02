@@ -1,5 +1,6 @@
-KERNELDIR := /home/dengxh/linux-source-6.1
+KERNELDIR := /home/dengxh/linux-6.4.0-150600.23.25
 CURRENT_PATH := $(shell pwd)
+CONFIG_MODULE_SIG=n
 
 obj-m := chrdevbase.o
 
