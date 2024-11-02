@@ -1,6 +1,4 @@
-CONFIG_MODULE_SIG=n
-
-KERNELDIR := /lib/modules/$(shell uname -r)/build
+KERNELDIR := /home/dengxh/linux-6.4.0-150600.23.25
 CURRENT_PATH := $(shell pwd)
 
 obj-m := helloworld.o
