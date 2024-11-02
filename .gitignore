@@ -6,3 +6,4 @@
 **/*.mod*
 **/*.livepatch
 **/*.cmd
+**/.vscode
