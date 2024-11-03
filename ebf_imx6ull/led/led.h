@@ -20,12 +20,12 @@
 #define CCM_CCGR1_PHY                           0x020C406C
 
 // mux && pad
-#define IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04_PHY    0x20E00006
-#define IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04_PHY    0x20E002F8
+#define IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04_PHY    0x020E006C
+#define IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04_PHY    0x020E02F8
 
 // dr & gdir
-#define GPIO1_DR_PHY                            0x2090C000
-#define GPIO1_GDIR_PHY                          0x2090C004
+#define GPIO1_DR_PHY                            0x0209C000
+#define GPIO1_GDIR_PHY                          0x0209C004
 
 
 enum LED_DEV_IOCTL_CMD {
@@ -35,11 +35,11 @@ enum LED_DEV_IOCTL_CMD {
 };
 
 struct led_dev_va_t {
-    void *CCM_CCGR1_VA;
-    void *IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04_VA;
-    void *IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04_VA;
-    void *GPIO1_DR_VA;
-    void *GPIO1_GDIR_VA;
+    void __iomem *CCM_CCGR1_VA;
+    void __iomem *IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04_VA;
+    void __iomem *IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04_VA;
+    void __iomem *GPIO1_DR_VA;
+    void __iomem *GPIO1_GDIR_VA;
 };
 
 typedef struct led_dev_t

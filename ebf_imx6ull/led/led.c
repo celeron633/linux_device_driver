@@ -93,14 +93,12 @@ static void led_dev_exit(void)
     // udev
     unregister_chrdev_region(led_dev_o.dev_id, 1);
 
-    /*
     // io mapping release
     iounmap(led_dev_o.dev_va.CCM_CCGR1_VA);
     iounmap(led_dev_o.dev_va.GPIO1_DR_VA);
     iounmap(led_dev_o.dev_va.GPIO1_GDIR_VA);
     iounmap(led_dev_o.dev_va.IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04_VA);
     iounmap(led_dev_o.dev_va.IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04_VA);
-    */
 }
 
 static int led_dev_open(struct inode *inodep, struct file *filep)

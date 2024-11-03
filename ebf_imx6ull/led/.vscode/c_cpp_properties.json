@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/dengxh/ebf_linux_kernel/include/generated",
+                "/home/dengxh/ebf_linux_kernel/arch/arm/include/generated",
+                "/home/dengxh/ebf_linux_kernel/arch/arm/include",
+                "/home/dengxh/ebf_linux_kernel/include"
+            ],
+            "defines": ["__KERNEL__", "MODULE"],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++98",
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.makefile-tools"
+        }
+    ],
+    "version": 4
+}
