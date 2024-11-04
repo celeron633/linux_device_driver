@@ -1,5 +1,5 @@
-#ifndef __CHRDEVBASE_H__
-#define __CHRDEVBASE_H__
+#ifndef __LED_H__
+#define __LED_H__
 
 #include <linux/init.h>
 #include <linux/uaccess.h>
@@ -36,10 +36,18 @@ enum LED_DEV_IOCTL_CMD {
 
 struct led_dev_va_t {
     void __iomem *CCM_CCGR1_VA;
-    void __iomem *IOMUXC_SW_MUX_CTL_PAD_GPIO1_IO04_VA;
-    void __iomem *IOMUXC_SW_PAD_CTL_PAD_GPIO1_IO04_VA;
-    void __iomem *GPIO1_DR_VA;
-    void __iomem *GPIO1_GDIR_VA;
+    void __iomem *IOMUXC_SW_MUX_CTL_PAD_VA;
+    void __iomem *IOMUXC_SW_PAD_CTL_PAD_VA;
+    void __iomem *GPIOX_DR_VA;
+    void __iomem *GPIOX_GDIR_VA;
+};
+
+struct led_dev_pa_t {
+    resource_size_t CCM_CCGR1_PA;
+    resource_size_t IOMUXC_SW_MUX_CTL_PAD_PA;
+    resource_size_t IOMUXC_SW_PAD_CTL_PAD_PA;
+    resource_size_t GPIOX_DR_PA;
+    resource_size_t GPIOX_GDIR_PA;
 };
 
 typedef struct led_dev_t
@@ -51,6 +59,7 @@ typedef struct led_dev_t
     struct device *dev_device;
     struct class *dev_class;
 
+    struct led_dev_pa_t dev_pa;
     struct led_dev_va_t dev_va;
 } led_dev_t;
 
