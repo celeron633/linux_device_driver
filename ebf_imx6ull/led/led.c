@@ -115,10 +115,6 @@ static void led_dev_exit(void)
         // cdev
         cdev_del(&(led_dev_objs[i].dev_cdev));
 
-        // device & class
-        device_destroy(led_dev_objs[i].dev_class, led_dev_objs[i].dev_id);
-        class_destroy(led_dev_objs[i].dev_class);
-
         // led_dev_o.dev_class->devnode
 
         // udev
@@ -131,6 +127,12 @@ static void led_dev_exit(void)
         iounmap(led_dev_objs[i].dev_va.IOMUXC_SW_MUX_CTL_PAD_VA);
         iounmap(led_dev_objs[i].dev_va.IOMUXC_SW_PAD_CTL_PAD_VA);
     }
+
+    // device & class
+    for (i = 0; i < 3; i++) {
+        device_destroy(led_dev_objs[i].dev_class, led_dev_objs[i].dev_id);
+    }
+    class_destroy(led_dev_objs[0].dev_class);
 }
 
 static int led_dev_open(struct inode *inodep, struct file *filep)
