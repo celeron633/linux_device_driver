@@ -48,6 +48,7 @@ static int led_dev_init(void)
 {
     u32 val = 0;
     int i = 0;
+    struct class *led_class;
     printk(KERN_NOTICE "init");
 
     // if already with major
@@ -93,10 +94,13 @@ static int led_dev_init(void)
         // cdev
         cdev_init(&(led_dev_objs[i].dev_cdev), &led_dev_fops);
         cdev_add(&(led_dev_objs[i].dev_cdev), led_dev_objs[i].dev_id, 1);
-        
-        // class & device
-        led_dev_objs[i].dev_class = class_create(THIS_MODULE, LED_DEV_NAME);
-        led_dev_objs[i].dev_device = device_create(led_dev_objs[i].dev_class, NULL, led_dev_objs[i].dev_id, NULL, LED_DEV_NAME);
+    }
+
+    // class & device
+    led_class = class_create(THIS_MODULE, LED_DEV_NAME);
+    for (i = 0; i < 3; i++) {
+        led_dev_objs[i].dev_class = led_class;
+        led_dev_objs[i].dev_device = device_create(led_dev_objs[i].dev_class, NULL, led_dev_objs[i].dev_id, NULL, "led1.%d", (i+1));
     }
 
     return 0;
