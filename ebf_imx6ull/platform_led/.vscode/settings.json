@@ -3,6 +3,7 @@
         "init.h": "c",
         "device.h": "c",
         "platform_device.h": "c",
-        "module.h": "c"
+        "module.h": "c",
+        "uaccess.h": "c"
     }
 }
