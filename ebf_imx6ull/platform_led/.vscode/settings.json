@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "init.h": "c",
+        "device.h": "c",
+        "platform_device.h": "c",
+        "module.h": "c"
+    }
+}
