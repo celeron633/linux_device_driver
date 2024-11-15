@@ -59,7 +59,7 @@ void platform_device_led_release(struct device *dev)
 
 int platform_device_led_init(void)
 {
-    printk(KERN_NOTICE "platform_device_led_int\r\n");
+    printk(KERN_NOTICE "platform_device_led_init\r\n");
     platform_device_register(&led_device);
     return 0;
 }
