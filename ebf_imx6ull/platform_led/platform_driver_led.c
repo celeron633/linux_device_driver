@@ -119,7 +119,7 @@ int platform_driver_led_probe(struct platform_device *pdev)
     cdev_add(&led_cdev, led_dev_id, 1);
 
     // class & device
-    led_class = class_create(THIS_MODULE, "ebf-led-class");
+    led_class = class_create(THIS_MODULE, "ebf-led");
     led_device = device_create(led_class, NULL, led_dev_id, NULL, "ebf-led");
 
     return 0;
@@ -130,7 +130,7 @@ int platform_driver_led_remove(struct platform_device *ppdev)
     printk(KERN_NOTICE "iounmap begin\r\n");
     iounmap(ccm_ccgr1_va);
     iounmap(iomux_sw_mux_ctl_pad_va);
-    iounmap(res_iomux_sw_pad_ctl_pad);
+    iounmap(iomux_sw_pad_ctl_pad_va);
     iounmap(gpio_gdir_va);
     iounmap(gpio_dr_va);
     printk(KERN_NOTICE "iounmap end\r\n");
