@@ -100,10 +100,11 @@ int platform_driver_led_probe(struct platform_device *pdev)
     val |= (3 << 26);
     writel(val, ccm_ccgr1_va);
 
+    // use pinctrl subsystem to config MUX and PAD
     // MUX
-    writel(5, iomux_sw_mux_ctl_pad_va);
+    // writel(5, iomux_sw_mux_ctl_pad_va);
     // PAD
-    writel(0x10B0, iomux_sw_pad_ctl_pad_va);
+    // writel(0x10B0, iomux_sw_pad_ctl_pad_va);
 
     // GDIR (set input or output, set to 1 as output)
     val = readl(gpio_gdir_va);

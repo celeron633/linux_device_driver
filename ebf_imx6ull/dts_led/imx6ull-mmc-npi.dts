@@ -119,8 +119,11 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "ebf,rgb_led";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_rgb_led>;
 		reg = <0x020C406C 0x4>, <0x020E006C 0x4>, <0x020E02F8 0x4>, <0x0209C004 0x4>, <0x0209C000 0x4>;
-		desc = "ebf led dts test"
+		desc = "ebf red led";
+		status = "okay";
 	};
 };
 
@@ -329,6 +332,12 @@
 				MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03 0x1b0b0
 			>;
 		};
+
+	pinctrl_rgb_led: rgbledgrp {
+		fsl,pins = <
+			MX6UL_PAD_GPIO1_IO04__GPIO1_IO04 0x1b0b0
+		>;
+	};
 };
 
 &iomuxc_snvs {
