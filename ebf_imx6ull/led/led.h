@@ -51,7 +51,7 @@ typedef struct led_dev_t
     struct device *dev_device;
     struct class *dev_class;
 
-    struct led_dev_va_t dev_va;
+    struct led_dev_va_t dev_regs;
 } led_dev_t;
 
 
