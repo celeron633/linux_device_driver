@@ -53,8 +53,8 @@ struct platform_device led_device = {
 void platform_device_led_release(struct device *dev)
 {
     printk(KERN_NOTICE "platform_device_led_release\r\n");
-    
-    return 0;
+
+
 }
 
 int platform_device_led_init(void)

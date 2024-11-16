@@ -13,8 +13,9 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("dengxh");
 
 int platform_driver_led_probe(struct platform_device *pdev);
+int platform_driver_led_remove(struct platform_device *ppdev);
 
-static dev_t led_dev_t;
+static dev_t led_dev_id;
 static struct cdev led_cdev;
 static struct class *led_class;
 static struct device *led_device;
@@ -27,6 +28,7 @@ static long led_dev_ioctl(struct file *filep, unsigned int cmd, unsigned long pa
 
 struct platform_driver led_driver = {
     .probe = platform_driver_led_probe,
+    .remove = platform_driver_led_remove,
     .driver.name = "ebf-imx6ull-led"
 };
 
@@ -75,11 +77,17 @@ int platform_driver_led_probe(struct platform_device *pdev)
     printk(KERN_NOTICE "gdir: %x\r\n", res_gpio_gdir->start);
     printk(KERN_NOTICE "dr: %x\r\n", res_gpio_dr->start);
 
-    ccm_ccgr1_va = ioremap(res_ccm_ccgr1->start, resource_size(res_ccm_ccgr1));
-    iomux_sw_mux_ctl_pad_va = ioremap(res_iomux_sw_mux_ctl_pad->start, resource_size(res_iomux_sw_mux_ctl_pad));
-    iomux_sw_pad_ctl_pad_va = ioremap(res_iomux_sw_pad_ctl_pad->start, resource_size(res_iomux_sw_pad_ctl_pad));
-    gpio_gdir_va = ioremap(res_gpio_gdir->start, resource_size(res_gpio_gdir));
-    gpio_dr_va = ioremap(res_gpio_dr->start, resource_size(res_gpio_dr));
+    ccm_ccgr1_va = ioremap(res_ccm_ccgr1->start, 4);
+    iomux_sw_mux_ctl_pad_va = ioremap(res_iomux_sw_mux_ctl_pad->start, 4);
+    iomux_sw_pad_ctl_pad_va = ioremap(res_iomux_sw_pad_ctl_pad->start, 4);
+    gpio_gdir_va = ioremap(res_gpio_gdir->start, 4);
+    gpio_dr_va = ioremap(res_gpio_dr->start, 4);
+
+    printk(KERN_NOTICE "ccgr1 va : %p\r\n", ccm_ccgr1_va);
+    printk(KERN_NOTICE "mux va : %p\r\n", iomux_sw_mux_ctl_pad_va);
+    printk(KERN_NOTICE "pad va: %p\r\n", iomux_sw_pad_ctl_pad_va);
+    printk(KERN_NOTICE "gdir va: %p\r\n", gpio_gdir_va);
+    printk(KERN_NOTICE "dr va: %p\r\n", gpio_dr_va);
 
     // CCGR
     val = readl(ccm_ccgr1_va);
@@ -88,9 +96,9 @@ int platform_driver_led_probe(struct platform_device *pdev)
     writel(val, ccm_ccgr1_va);
 
     // MUX
-    writel(5, res_iomux_sw_mux_ctl_pad);
+    writel(5, iomux_sw_mux_ctl_pad_va);
     // PAD
-    writel(0x10B0, res_iomux_sw_pad_ctl_pad);
+    writel(0x10B0, iomux_sw_pad_ctl_pad_va);
 
     // GDIR (set input or output, set to 1 as output)
     val = readl(gpio_gdir_va);
@@ -104,15 +112,44 @@ int platform_driver_led_probe(struct platform_device *pdev)
     writel(val, gpio_dr_va);
 
     // dev_t
-    alloc_chrdev_region(&led_dev_t, 0, 1, "ebf-led");
+    alloc_chrdev_region(&led_dev_id, 0, 1, "ebf-led");
 
     // cdev
     cdev_init(&led_cdev, &led_dev_fops);
-    cdev_add(&led_cdev, led_dev_t, 1);
+    cdev_add(&led_cdev, led_dev_id, 1);
 
     // class & device
-    led_class = class_create(THIS_MODULE, "ebf-led");
-    led_device = device_create(led_class, NULL, led_dev_t, NULL, "ebf-led");
+    led_class = class_create(THIS_MODULE, "ebf-led-class");
+    led_device = device_create(led_class, NULL, led_dev_id, NULL, "ebf-led");
+
+    return 0;
+}
+
+int platform_driver_led_remove(struct platform_device *ppdev)
+{
+    printk(KERN_NOTICE "iounmap begin\r\n");
+    iounmap(ccm_ccgr1_va);
+    iounmap(iomux_sw_mux_ctl_pad_va);
+    iounmap(res_iomux_sw_pad_ctl_pad);
+    iounmap(gpio_gdir_va);
+    iounmap(gpio_dr_va);
+    printk(KERN_NOTICE "iounmap end\r\n");
+
+    printk(KERN_NOTICE "cdev_del begin\r\n");
+    cdev_del(&led_cdev);
+    printk(KERN_NOTICE "cdev_del end\r\n");
+
+    printk(KERN_NOTICE "device_destroy begin\r\n");
+    device_destroy(led_class, led_dev_id);
+    printk(KERN_NOTICE "device_destroy end\r\n");
+
+    printk(KERN_NOTICE "class_destroy begin\r\n");
+    class_destroy(led_class);
+    printk(KERN_NOTICE "class_destroy end\r\n");
+
+    printk(KERN_NOTICE "unregister_chrdev_region begin\r\n");
+    unregister_chrdev_region(led_dev_id, 1);
+    printk(KERN_NOTICE "unregister_chrdev_region end\r\n");
 
     return 0;
 }
@@ -129,45 +166,36 @@ void platform_driver_led_exit(void)
 {
     printk(KERN_NOTICE "platform_driver_led_exit\r\n");
 
-    iounmap(ccm_ccgr1_va);
-    iounmap(iomux_sw_mux_ctl_pad_va);
-    iounmap(res_iomux_sw_pad_ctl_pad);
-    iounmap(gpio_gdir_va);
-    iounmap(gpio_dr_va);
-
-    device_destroy(led_class, led_dev_t);
-    class_destroy(led_class);
-    unregister_chrdev_region(led_dev_t, 1);
-    cdev_del(&led_cdev);
-
-    platform_driver_unregister(&led_driver);;
+    printk(KERN_NOTICE "platform_driver_unregister begin\r\n");
+    platform_driver_unregister(&led_driver);
+    printk(KERN_NOTICE "platform_driver_unregister end\r\n");
 }
 
 // old functions
 static int led_dev_open(struct inode *inodep, struct file *filep)
 {
-    printk(KERN_NOTICE "open");
+    printk(KERN_NOTICE "open\r\n");
 
     return 0;
 }
 
 static int led_dev_release(struct inode *inodep, struct file *filep)
 {
-    printk(KERN_NOTICE "release");
+    printk(KERN_NOTICE "release\r\n");
 
     return 0;
 }
 
 static ssize_t led_dev_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
-    char msg_to_user[] = "hello wrorld\n";
+    char msg_to_user[] = "hello wrorld\r\n";
     int ret;
 
-    printk(KERN_NOTICE "read");
+    printk(KERN_NOTICE "read\r\n");
 
     ret = copy_to_user(buf, msg_to_user, sizeof(msg_to_user));
     if (ret < 0) {
-        printk(KERN_ERR "copy_to_user failed!");
+        printk(KERN_ERR "copy_to_user failed!\r\n");
         return EFAULT;
     }
     
@@ -180,14 +208,14 @@ static ssize_t led_dev_write(struct file *f, const char __user *buf, size_t len,
     int ret;
     int val;
 
-    printk(KERN_NOTICE "write");
+    printk(KERN_NOTICE "write\r\n");
 
     ret = copy_from_user(buffer, buf, len);
     if (ret < 0) {
-        printk(KERN_ERR "copy_from_user failed!");
+        printk(KERN_ERR "copy_from_user failed!\r\n");
         return EFAULT;
     }
-    printk(KERN_NOTICE "read %d bytes from userspace: [%s]", (int)len, buffer);
+    printk(KERN_NOTICE "read %d bytes from userspace: [%s]\r\n", (int)len, buffer);
 
     if (strlen(buffer) > 1) {
         ret = buffer[0] - '0';
@@ -212,23 +240,23 @@ static long led_dev_ioctl(struct file *filep, unsigned int cmd, unsigned long pa
     int sw = -1;
     int val;
     
-    printk(KERN_NOTICE "ioctl");
+    printk(KERN_NOTICE "ioctl\r\n");
 
     switch (cmd)
     {
     case LED_ON_CMD:
-        printk(KERN_NOTICE "LED_ON_CMD, para: %d", (int)para);
+        printk(KERN_NOTICE "LED_ON_CMD, para: %d\r\n", (int)para);
         sw = 1;
         break;
     case LED_OFF_CMD:
-        printk(KERN_NOTICE "LED_OFF_CMD, para: %d", (int)para);
+        printk(KERN_NOTICE "LED_OFF_CMD, para: %d\r\n", (int)para);
         sw = 0;
         break;
     case LED_TOGGLE_CMD:
-        printk(KERN_NOTICE "LED_TOGGLE_CMD, para: %d", (int)para);
+        printk(KERN_NOTICE "LED_TOGGLE_CMD, para: %d\r\n", (int)para);
         break; 
     default:
-        printk(KERN_NOTICE "invalid cmd, para: %d", (int)para);
+        printk(KERN_NOTICE "invalid cmd, para: %d\r\n", (int)para);
         return EINVAL;
     }
 
