@@ -4,6 +4,7 @@
         "device.h": "c",
         "platform_device.h": "c",
         "module.h": "c",
-        "uaccess.h": "c"
+        "uaccess.h": "c",
+        "cdev.h": "c"
     }
 }
