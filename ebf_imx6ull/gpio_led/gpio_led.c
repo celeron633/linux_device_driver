@@ -187,7 +187,7 @@ static ssize_t led_dev_write(struct file *f, const char __user *buf, size_t len,
         printk(KERN_ERR "copy_from_user failed!\r\n");
         return EFAULT;
     }
-    printk(KERN_NOTICE "read %d bytes from userspace: [%s]\r\n", (int)len, buffer);
+    printk(KERN_NOTICE "read command [%c] from userspace\r\n", buffer[0]);
 
     if (strlen(buffer) > 1) {
         ret = buffer[0] - '0';
