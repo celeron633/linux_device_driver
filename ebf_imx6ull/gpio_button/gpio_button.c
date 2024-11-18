@@ -76,7 +76,7 @@ int platform_driver_button_probe(struct platform_device *pdev)
     // 获取gpio句柄
     button_gpio = of_get_named_gpio(button_node, "key-gpio", 0);
     if (button_gpio < 0) {
-        printk(KERN_ERR "of_get_named_gpio for rgb-red-gpio failed!\r\n");
+        printk(KERN_ERR "of_get_named_gpio for key-gpio failed!\r\n");
         return -EINVAL;
     }
     gpio_direction_input(button_gpio);
@@ -162,6 +162,7 @@ static ssize_t button_dev_read(struct file *f, char __user *buf, size_t len, lof
     printk(KERN_NOTICE "read\r\n");
 
     gpio_value = gpio_get_value(button_gpio);
+    printk(KERN_DEBUG "gpio_val: %d\r\n", gpio_value);
     buffer_len = sprintf(buffer, "%d", gpio_value);
     ret = copy_to_user(buf, buffer, buffer_len);
 
