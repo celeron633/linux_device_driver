@@ -131,7 +131,7 @@
 		#size-cells = <1>;
 		compatible = "ebf,button_key";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_rgb_led>;
+		pinctrl-0 = <&pinctrl_btn_key>;
 		key-gpio = <&gpio5 1 GPIO_ACTIVE_LOW>;
 		desc = "ebf button key";
 		status = "okay";
