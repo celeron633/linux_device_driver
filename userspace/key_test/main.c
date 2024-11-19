@@ -34,7 +34,8 @@ int main(int argc, char *argv[])
             printf("read failed\r\n");
             return -1;
         }
-        printf("%s\r\n", buf);
+        printf("length: %d, key: %s\r\n", ret, buf);
+        usleep(300 * 1000);
     }
     
 
