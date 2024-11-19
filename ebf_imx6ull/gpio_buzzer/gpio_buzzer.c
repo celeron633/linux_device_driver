@@ -13,14 +13,18 @@
 #include <linux/of_gpio.h>
 #include <linux/gpio.h>
 #include <linux/atomic.h>
+#include <linux/miscdevice.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("dengxh");
+
+#define BUZZER_MINOR 185
 
 int platform_driver_buzzer_probe(struct platform_device *pdev);
 int platform_driver_buzzer_remove(struct platform_device *ppdev);
 
 // device id & cdev & class & device
+
 
 // file operations
 static int buzzer_dev_open(struct inode *inodep, struct file *filep);
@@ -48,11 +52,19 @@ struct file_operations buzzer_dev_fops = {
     .open = buzzer_dev_open,
     .release = buzzer_dev_release,
     .read = buzzer_dev_read,
+    .write = buzzer_dev_write,
+};
+
+static struct miscdevice buzzer_misc = {
+    .fops = &buzzer_dev_fops,
+    .minor = BUZZER_MINOR,
+    .name = "ebf_buzzer"
 };
 
 int platform_driver_buzzer_probe(struct platform_device *pdev)
 {
     printk(KERN_NOTICE "platform_driver_buzzer_probe!\r\n");
+    misc_deregister(&buzzer_misc);
 
     return 0;
 }
@@ -60,6 +72,7 @@ int platform_driver_buzzer_probe(struct platform_device *pdev)
 int platform_driver_buzzer_remove(struct platform_device *ppdev)
 {
     printk(KERN_NOTICE "platform_driver_buzzer_remove!\r\n");
+    misc_deregister(&buzzer_misc);
 
     return 0;
 }
@@ -99,6 +112,14 @@ static ssize_t buzzer_dev_read(struct file *f, char __user *buf, size_t len, lof
     
     return 0;
 }
+
+static ssize_t buzzer_dev_write(struct file *fp, const char __user *buf, size_t len, loff_t *off)
+{
+    printk(KERN_NOTICE "write\r\n");
+
+    return len;
+}
+
 
 module_init(platform_driver_buzzer_init);
 module_exit(platform_driver_buzzer_exit);
