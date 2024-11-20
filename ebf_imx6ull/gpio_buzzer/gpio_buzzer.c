@@ -20,16 +20,18 @@ MODULE_AUTHOR("dengxh");
 
 #define BUZZER_MINOR 185
 
+// platform driver
 int platform_driver_buzzer_probe(struct platform_device *pdev);
 int platform_driver_buzzer_remove(struct platform_device *ppdev);
 
-// device id & cdev & class & device
-
+// buzzer gpio
+int buzzer_gpio;
 
 // file operations
 static int buzzer_dev_open(struct inode *inodep, struct file *filep);
 static int buzzer_dev_release(struct inode *inodep, struct file *filep);
 static ssize_t buzzer_dev_read(struct file *f, char __user *buf, size_t len, loff_t *off);
+static ssize_t buzzer_dev_write(struct file *fp, const char __user *buf, size_t len, loff_t *off);
 
 struct of_device_id match_table[] = {
     {
@@ -63,8 +65,24 @@ static struct miscdevice buzzer_misc = {
 
 int platform_driver_buzzer_probe(struct platform_device *pdev)
 {
+    struct device_node *buzzer_node;
+
     printk(KERN_NOTICE "platform_driver_buzzer_probe!\r\n");
     misc_deregister(&buzzer_misc);
+
+    buzzer_node = of_find_node_by_path("/ebf_buzzer");
+    if (buzzer_node == NULL) {
+        printk(KERN_ERR "find node 'buzzer_node' failed\r\n");
+        return -EINVAL;
+    }
+    buzzer_gpio = of_get_named_gpio(buzzer_node, "gpio_buzzer", 0);
+    if (buzzer_gpio < 0) {
+        printk(KERN_ERR "of_get_named_gpio failed\r\n");
+        return -EINVAL;
+    }
+
+    gpio_direction_output(buzzer_gpio, 0);
+    gpio_set_value(buzzer_gpio, 0);
 
     return 0;
 }
@@ -73,6 +91,8 @@ int platform_driver_buzzer_remove(struct platform_device *ppdev)
 {
     printk(KERN_NOTICE "platform_driver_buzzer_remove!\r\n");
     misc_deregister(&buzzer_misc);
+
+    gpio_free(buzzer_gpio);
 
     return 0;
 }
@@ -108,14 +128,29 @@ static int buzzer_dev_release(struct inode *inodep, struct file *filep)
 
 static ssize_t buzzer_dev_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
-    int ret;
+    // int ret;
     
     return 0;
 }
 
 static ssize_t buzzer_dev_write(struct file *fp, const char __user *buf, size_t len, loff_t *off)
 {
+    char buffer[16];
+    int ret;
     printk(KERN_NOTICE "write\r\n");
+
+    ret = copy_from_user(buffer, buf, len);
+    if (ret < 0) {
+        printk(KERN_ERR "copy_from_user failed!\r\n");
+        return -EINVAL;
+    }
+    if (buffer[0] == '1') {
+        gpio_set_value(buzzer_gpio, 1);
+        printk(KERN_NOTICE "buzzer on!\r\n");
+    } else {
+        gpio_set_value(buzzer_gpio, 0);
+        printk(KERN_NOTICE "buzzer off!\r\n");
+    }
 
     return len;
 }
