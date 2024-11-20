@@ -24,6 +24,12 @@ MODULE_AUTHOR("dengxh");
 int platform_driver_buzzer_probe(struct platform_device *pdev);
 int platform_driver_buzzer_remove(struct platform_device *ppdev);
 
+// cdev && class && device
+static dev_t buzzer_dev_id;
+static struct cdev buzzer_cdev;
+static struct class *buzzer_class;
+static struct device *buzzer_device;
+
 // buzzer gpio
 int buzzer_gpio;
 
@@ -51,31 +57,34 @@ struct platform_driver platform_driver_buzzer = {
 };
 
 struct file_operations buzzer_dev_fops = {
+    .owner = THIS_MODULE,
     .open = buzzer_dev_open,
     .release = buzzer_dev_release,
     .read = buzzer_dev_read,
     .write = buzzer_dev_write,
 };
 
-static struct miscdevice buzzer_misc = {
-    .fops = &buzzer_dev_fops,
-    .minor = BUZZER_MINOR,
-    .name = "ebf_buzzer"
-};
+// static struct miscdevice buzzer_misc = {
+//     .fops = &buzzer_dev_fops,
+//     .minor = MISC_DYNAMIC_MINOR,
+//     .name = "ebf_buzzer"
+// };
 
 int platform_driver_buzzer_probe(struct platform_device *pdev)
 {
     struct device_node *buzzer_node;
 
     printk(KERN_NOTICE "platform_driver_buzzer_probe!\r\n");
-    misc_deregister(&buzzer_misc);
+    // printk(KERN_NOTICE "misc_deregister begin!\r\n");
+    // misc_deregister(&buzzer_misc);
+    // printk(KERN_NOTICE "misc_deregister end!\r\n");
 
     buzzer_node = of_find_node_by_path("/ebf_buzzer");
     if (buzzer_node == NULL) {
         printk(KERN_ERR "find node 'buzzer_node' failed\r\n");
         return -EINVAL;
     }
-    buzzer_gpio = of_get_named_gpio(buzzer_node, "gpio_buzzer", 0);
+    buzzer_gpio = of_get_named_gpio(buzzer_node, "buzzer-gpio", 0);
     if (buzzer_gpio < 0) {
         printk(KERN_ERR "of_get_named_gpio failed\r\n");
         return -EINVAL;
@@ -84,15 +93,26 @@ int platform_driver_buzzer_probe(struct platform_device *pdev)
     gpio_direction_output(buzzer_gpio, 0);
     gpio_set_value(buzzer_gpio, 0);
 
+    alloc_chrdev_region(&buzzer_dev_id, 0, 1, "ebf_buzzer");
+    cdev_init(&buzzer_cdev, &buzzer_dev_fops);
+    cdev_add(&buzzer_cdev, buzzer_dev_id, 1);
+    buzzer_class = class_create(THIS_MODULE, "ebf_buzzer");
+    buzzer_device = device_create(buzzer_class, NULL, buzzer_dev_id, NULL, "ebf_buzzer");
+
     return 0;
 }
 
 int platform_driver_buzzer_remove(struct platform_device *ppdev)
 {
     printk(KERN_NOTICE "platform_driver_buzzer_remove!\r\n");
-    misc_deregister(&buzzer_misc);
+    // misc_deregister(&buzzer_misc);
 
     gpio_free(buzzer_gpio);
+
+    cdev_del(&buzzer_cdev);
+    device_destroy(buzzer_class, buzzer_dev_id);
+    class_destroy(buzzer_class);
+    unregister_chrdev_region(buzzer_dev_id, 1);
 
     return 0;
 }
