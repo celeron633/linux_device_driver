@@ -12,7 +12,7 @@ struct timer_list timer;
 
 void timer_callback(struct timer_list *t)
 {
-    printk(KERN_NOTICE "timer_callback\r\n");
+    printk(KERN_NOTICE "timer_callback, jiffies: %lu\r\n", jiffies);
     mod_timer(&timer, jiffies + msecs_to_jiffies(1000));
 }
 
