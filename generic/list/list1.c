@@ -4,14 +4,49 @@
 #include <linux/printk.h>
 #include <linux/miscdevice.h>
 #include <linux/slab.h>
+#include <linux/miscdevice.h>
+#include <linux/device.h>
+#include <linux/fs.h>
+#include <linux/uaccess.h>
 
-struct student {
+typedef struct student {
     struct list_head node;
     char name[24];
     int id;
+} student_t;
+student_t stu;
+
+int list1_open(struct inode *ip, struct file *fp)
+{
+    printk(KERN_NOTICE "open\r\n");
+    return 0;
+}
+
+int list1_release(struct inode *ip, struct file *fp)
+{
+    printk(KERN_NOTICE "release\r\n");
+    return 0;
+}
+
+long list1_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
+{
+    printk(KERN_NOTICE "ioctl cmd: %u, arg: %lu", cmd, arg);
+
+    return 0;
+}
+
+struct file_operations list1_fops = {
+    .open = list1_open,
+    .release = list1_release,
+    .compat_ioctl = list1_ioctl,
+    .unlocked_ioctl = list1_ioctl
 };
 
-struct student stu;
+struct miscdevice misc_dev = {
+    .fops = &list1_fops,
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = "list1"
+};
 
 void init_stu_list(void)
 {
@@ -39,6 +74,7 @@ int __init list1_init(void)
     printk(KERN_NOTICE "init\r\n");
 
     init_stu_list();
+    misc_register(&misc_dev);
 
     return 0;
 }
@@ -63,6 +99,7 @@ void __exit list1_exit(void)
         kfree(cur);
     }
 
+    misc_deregister(&misc_dev);
     printk(KERN_NOTICE "exit\r\n");
 }
 
