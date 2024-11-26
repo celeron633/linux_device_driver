@@ -3,6 +3,7 @@
 #include <linux/list.h>
 #include <linux/printk.h>
 #include <linux/miscdevice.h>
+#include <linux/slab.h>
 
 struct student {
     struct list_head node;
@@ -16,8 +17,9 @@ void init_stu_list(void)
 {
     int i;
     char buf[12];
-    INIT_LIST_HEAD(&stu.node);
+    struct student *cur;
 
+    INIT_LIST_HEAD(&stu.node);
     for (i = 0; i < 10; i++) {
         struct student *s = kmalloc(sizeof(struct student), GFP_KERNEL);
         s->id = i;
@@ -27,7 +29,6 @@ void init_stu_list(void)
         list_add(&s->node, &stu.node);
     }
 
-    struct student *cur;
     list_for_each_entry(cur, &stu.node, node) {
         printk("name: %s, id: %d\r\n", cur->name, cur->id);
     }
@@ -44,6 +45,24 @@ int __init list1_init(void)
 
 void __exit list1_exit(void)
 {
+    struct student *cur;
+    struct student *cur2;
+
+    // 下面注释的代码会引起oops, 以为节点被删除, next时访问了空指针
+    // list_for_each_entry(cur, &stu.node, node) {
+    //     printk("%d\r\n", cur->id);
+    //     list_del(&cur->node);
+    //     // BUG
+    //     kfree(cur);
+    // }
+
+    // 在遍历中有删除或者修改操作, 务必使用带safe的
+    list_for_each_entry_safe(cur, cur2, &stu.node, node) {
+        printk("del: %d\r\n", cur->id);
+        list_del(&cur->node);
+        kfree(cur);
+    }
+
     printk(KERN_NOTICE "exit\r\n");
 }
 

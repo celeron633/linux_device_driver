@@ -1,4 +1,4 @@
-KERNELDIR := /home/dengxh/linux-6.4.0-150600.23.25
+KERNELDIR := /home/dengxh/linux_kernel_dev/linux-4.19.324
 CURRENT_PATH := $(shell pwd)
 CONFIG_MODULE_SIG=n
 
