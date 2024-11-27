@@ -10,41 +10,41 @@
 #include <linux/uaccess.h>
 #include <linux/kfifo.h>
 
-int list1_open(struct inode *ip, struct file *fp)
+int kfifo1_open(struct inode *ip, struct file *fp)
 {
     printk(KERN_NOTICE "open\r\n");
     return 0;
 }
 
-int list1_release(struct inode *ip, struct file *fp)
+int kfifo1_release(struct inode *ip, struct file *fp)
 {
     printk(KERN_NOTICE "release\r\n");
     return 0;
 }
 
-long list1_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
+long kfifo1_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 {
     printk(KERN_NOTICE "ioctl cmd: %u, arg: %lu", cmd, arg);
 
     return 0;
 }
 
-struct file_operations list1_fops = {
-    .open = list1_open,
-    .release = list1_release,
-    .compat_ioctl = list1_ioctl,
-    .unlocked_ioctl = list1_ioctl
+struct file_operations kfifo1_fops = {
+    .open = kfifo1_open,
+    .release = kfifo1_release,
+    .compat_ioctl = kfifo1_ioctl,
+    .unlocked_ioctl = kfifo1_ioctl
 };
 
 struct miscdevice misc_dev = {
-    .fops = &list1_fops,
+    .fops = &kfifo1_fops,
     .minor = MISC_DYNAMIC_MINOR,
-    .name = "list1"
+    .name = "kfifo1"
 };
 
 struct kfifo kf;
 
-int __init list1_init(void)
+int __init kfifo1_init(void)
 {
     int ret;
     int i;
@@ -69,7 +69,7 @@ int __init list1_init(void)
     return 0;
 }
 
-void __exit list1_exit(void)
+void __exit kfifo1_exit(void)
 {
     int val;
     int ret;
@@ -89,5 +89,5 @@ void __exit list1_exit(void)
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("dengxh");
 
-module_init(list1_init);
-module_exit(list1_exit);
+module_init(kfifo1_init);
+module_exit(kfifo1_exit);
