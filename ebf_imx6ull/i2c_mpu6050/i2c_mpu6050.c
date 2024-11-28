@@ -16,35 +16,37 @@
 #include <linux/i2c.h>
 #include <linux/miscdevice.h>
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("dengxh");
+// i2c_client 
+// TODO: 需要mutex保护
+struct i2c_client *mpu6050_client;
+
+// mpu6050 i2c 读取函数
+int i2c_read_mpu6050(struct i2c_client *c, u8 addr, void *data, u32 len)
+{
+    struct i2c_msg msg_to_send[2];
+    int ret;
+    
+    // 先写后读
+    // 第一个消息发送指令 要读的mpu6050寄存器的地址, 不是i2c地址
+    msg_to_send[0].addr = c->addr;
+    msg_to_send[0].buf = &addr;
+    msg_to_send[0].flags = 0;
+    msg_to_send[0].len = 1;
+
+    // 第二个消息读取数据, 读取mpu6050返回的寄存器的数据
+    msg_to_send[1].addr = c->addr;
+    msg_to_send[1].buf = (u8 *)data;
+    msg_to_send[1].flags = I2C_M_RD;
+    msg_to_send[1].len = len;
+
+    ret = i2c_transfer(c->adapter, msg_to_send, 2);
+    if (ret < 0) {
+        printk(KERN_WARNING "i2c_transfer failed\r\n");
+    }
+    return ret;
+} 
 
 // file operations
-static int mpu6050_open(struct inode *inodep, struct file *filep);
-static int mpu6050_release(struct inode *inodep, struct file *filep);
-static ssize_t mpu6050_read(struct file *f, char __user *buf, size_t len, loff_t *off);
-static ssize_t mpu6050_write(struct file *f, const char __user *buf, size_t len, loff_t *off);
-
-struct file_operations mpu6050_fops = {
-    .open = mpu6050_open,
-    .release = mpu6050_release,
-    .read = mpu6050_read,
-    .write = mpu6050_write,
-};
-
-// misc device
-struct miscdevice mpu6050_misc = {
-    .fops = &mpu6050_fops,
-    .minor = MISC_DYNAMIC_MINOR,
-    .name = "fire-mpu6050"
-};
-
-// need mutex protect
-// i2c_client
-struct i2c_client *mpu6050_client;
-// need mutex protect
-
-// file ops
 static int mpu6050_open(struct inode *inodep, struct file *filep)
 {
     printk(KERN_NOTICE "open\r\n");
@@ -61,20 +63,33 @@ static int mpu6050_release(struct inode *inodep, struct file *filep)
 
 static ssize_t mpu6050_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
-    printk(KERN_NOTICE "read\r\n");
+    printk(KERN_NOTICE "mpu6050 read\r\n");
     
     return 0;
 }
 
 static ssize_t mpu6050_write(struct file *f, const char __user *buf, size_t len, loff_t *off)
 {
-    char buffer[256];
     int ret;
 
-    printk(KERN_NOTICE "write\r\n");
+    printk(KERN_NOTICE "mpu6050 write\r\n");
 
     return len;
 }
+
+struct file_operations mpu6050_fops = {
+    .open = mpu6050_open,
+    .release = mpu6050_release,
+    .read = mpu6050_read,
+    .write = mpu6050_write,
+};
+
+// misc device
+struct miscdevice mpu6050_misc = {
+    .fops = &mpu6050_fops,
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = "fire-mpu6050"
+};
 
 static int i2c_mpu6050_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
@@ -95,21 +110,19 @@ static int i2c_mpu6050_remove(struct i2c_client *cleint)
 }
 
 // register to i2c bus, not platform
-struct of_device_id mpu6050_of_match[] = {
+static struct of_device_id mpu6050_of_match[] = {
     // invensense,mpu6050 defined in overlay dts
     {.compatible = "invensense,mpu6050"},
     {}
 };
 
-struct i2c_device_id mpu6050_id[] = {
-    {
-        .name = "mpu6050",
-        .driver_data = 0
-    }
+static struct i2c_device_id mpu6050_id[] = {
+    {.name = "mpu6050", .driver_data = 0},
+    {}
 };
 
 // 若i2c devices已经被注册, match则无效, 不会继续匹配
-struct i2c_driver mpu6050_driver = {
+static struct i2c_driver mpu6050_driver = {
     .probe = i2c_mpu6050_probe,
     .remove = i2c_mpu6050_remove,
     .driver = {
@@ -119,8 +132,6 @@ struct i2c_driver mpu6050_driver = {
     },
     .id_table = mpu6050_id
 };
-
-
 
 static int __init i2c_mpu6050_init(void)
 {
@@ -145,6 +156,9 @@ static void __exit i2c_mpu6050_exit(void)
     printk(KERN_DEBUG "i2c_del_driver end\r\n");
 
 }
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("dengxh");
 
 module_init(i2c_mpu6050_init);
 module_exit(i2c_mpu6050_exit);
