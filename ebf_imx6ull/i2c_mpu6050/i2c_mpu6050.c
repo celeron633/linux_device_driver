@@ -15,13 +15,49 @@
 #include <linux/pinctrl/pinctrl.h>
 #include <linux/i2c.h>
 #include <linux/miscdevice.h>
+#include <linux/delay.h>
+
+#include "mpu6050_reg.h"
 
 // i2c_client 
 // TODO: 需要mutex保护
 struct i2c_client *mpu6050_client;
 
+// mpu6050 i2c 写寄存器函数
+int mpu6050_write_reg(struct i2c_client *c, u8 addr, void *data, u32 len)
+{
+    struct i2c_msg msg_to_send[1];
+    int ret;
+    char buf[256];
+
+    // buf开头为mpu6050的寄存器地址, 余下来为数据
+    buf[0] = addr;
+    memcpy(&buf[1], data, len);
+    
+    msg_to_send[0].addr = c->addr;
+    msg_to_send[0].buf = buf;
+    msg_to_send[0].flags = 0;
+    msg_to_send[0].len = 1 + len;
+
+    ret = i2c_transfer(c->adapter, msg_to_send, 1);
+    if (ret < 0) {
+        printk(KERN_WARNING "i2c_transfer failed\r\n");
+    }
+    return ret;
+}
+
+int mpu6050_write_one_reg(struct i2c_client *c, u8 addr, u8 data)
+{
+    char buf;
+    int ret;
+
+    ret = mpu6050_write_reg(c, addr, &buf, 1);
+
+    return ret;
+}
+
 // mpu6050 i2c 读取函数
-int i2c_read_mpu6050(struct i2c_client *c, u8 addr, void *data, u32 len)
+int mpu6050_read_reg(struct i2c_client *c, u8 addr, void *data, u32 len)
 {
     struct i2c_msg msg_to_send[2];
     int ret;
@@ -44,12 +80,51 @@ int i2c_read_mpu6050(struct i2c_client *c, u8 addr, void *data, u32 len)
         printk(KERN_WARNING "i2c_transfer failed\r\n");
     }
     return ret;
-} 
+}
+
+u8 mpu6050_read_one_reg(struct i2c_client *c, u8 addr)
+{
+    u8 buf;
+    u8 ret;
+
+    ret = mpu6050_read_reg(c, addr, &buf, 1);
+
+    return buf;
+}
+
+int mpu6050_internal_init(struct i2c_client *c)
+{
+    int ret = 0;
+    u8 mpu6050_id;
+    
+    ret += mpu6050_write_one_reg(c, MPU6050_RA_PWR_MGMT_1, 0x80);
+    mdelay(50);
+    ret += mpu6050_write_one_reg(c, MPU6050_RA_PWR_MGMT_1, 0x01);
+    mdelay(50);
+
+    mpu6050_id = mpu6050_read_one_reg(c, MPU6050_RA_WHO_AM_I);
+    printk(KERN_NOTICE "mpu6050 ID = %02x\r\n", mpu6050_id);
+
+    if (ret < 0) {
+        printk(KERN_WARNING "mpu6050_internal_init failed\r\n");
+        return -1;
+    } else {
+        printk(KERN_DEBUG "mpu6050_internal_init success\r\n");
+    }
+
+    return 0;
+}
 
 // file operations
 static int mpu6050_open(struct inode *inodep, struct file *filep)
 {
+    int ret;
     printk(KERN_NOTICE "open\r\n");
+
+    ret = mpu6050_internal_init(mpu6050_client);
+    if (ret < 0) {
+        return -EXDEV;
+    }
 
     return 0;
 }
@@ -64,13 +139,15 @@ static int mpu6050_release(struct inode *inodep, struct file *filep)
 static ssize_t mpu6050_read(struct file *f, char __user *buf, size_t len, loff_t *off)
 {
     printk(KERN_NOTICE "mpu6050 read\r\n");
+
+    
     
     return 0;
 }
 
 static ssize_t mpu6050_write(struct file *f, const char __user *buf, size_t len, loff_t *off)
 {
-    int ret;
+    // int ret;
 
     printk(KERN_NOTICE "mpu6050 write\r\n");
 
