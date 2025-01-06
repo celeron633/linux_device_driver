@@ -24,11 +24,22 @@ static struct spi_device_id max7219_id[] = {
     0
 };
 
-int max7219_probe(struct spi_device *spi)
+static int max7219_init(struct spi_device *device)
+{
+    pr_debug("max7219 init\r\n");
+
+    // 写7219寄存器
+
+}
+
+static int max7219_probe(struct spi_device *spi)
 {
     pr_debug("max7219_probe begin!\r\n");
     max7219_device = spi;
     pr_debug("max7219_probe end!\r\n");
+
+    // 初始化max7219
+    max7219_init(spi);
 }
 
 static struct spi_driver max7219_driver = {
@@ -36,8 +47,28 @@ static struct spi_driver max7219_driver = {
     .probe = &max7219_probe
 };
 
-struct file_operations max7219_misc_fops = {
+static int max7219_misc_fop_open(struct inode *i, struct file *f)
+{
+    pr_debug("max7219 open\r\n");
+    f->private_data = max7219_device;
+}
 
+static int max7219_misc_fop_close(struct inode *i, struct file *f)
+{
+    pr_debug("max7219 close\r\n");
+
+}
+
+static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, size_t size, loff_t *off)
+{
+    pr_debug("max7219 write\r\n");
+
+}
+
+struct file_operations max7219_misc_fops = {
+    .open = &max7219_misc_fop_open,
+    .release = &max7219_misc_fop_close,
+    .write = &max7219_misc_fop_write
 };
 
 struct miscdevice max7219_misc = {
