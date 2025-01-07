@@ -17,33 +17,100 @@
 #include <linux/miscdevice.h>
 #include <linux/delay.h>
 
+#include "reg_max7219.h"
+
 static struct spi_device *max7219_device;
 
 static struct spi_device_id max7219_id[] = {
-    {.name = "max7219"},
-    0
+    {.name = "max7219"}
 };
+
+static struct of_device_id max7219_of_id[] = {
+    {.compatible = "max7219", .name = "max7219"}
+};
+
+static int max7219_write_reg(struct spi_device *device, uint8_t opcode, uint8_t data)
+{
+    uint8_t buf[2];
+    buf[0] = opcode;
+    buf[1] = data;
+
+    if (spi_write(device, buf, 2) < 0) {
+        pr_err("spi_write FAILED!\r\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int max7219_clear(struct spi_device *device, uint8_t count)
+{
+    int i;
+    for(i = 0; i < count; i++) {
+        if (max7219_write_reg(device, i+1, 0x00) < 0) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int max7219_set_brightness(struct spi_device *device, uint8_t brightness)
+{
+    brightness &= 0x0f;
+    if (max7219_write_reg(device, REG_INTENSITY, brightness) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
 
 static int max7219_init(struct spi_device *device)
 {
-    pr_debug("max7219 init\r\n");
+    pr_debug("max7219 init begin\r\n");
 
-    // 写7219寄存器
+    // 初始化7219寄存器
+    if (max7219_write_reg(device, REG_SCAN_LIMIT, 0x07) < 0)
+        return -1;
+    if (max7219_write_reg(device, REG_DECODE, 0x00) < 0)
+        return -1;
+    if (max7219_write_reg(device, REG_SHUTDOWN, 0x01) < 0)
+        return -1;
+    if (max7219_write_reg(device, REG_DISPLAY_TEST, 0x00) < 0)
+        return -1;
+    if (max7219_clear(device, 0x08))
+        return -1;
+    if (max7219_set_brightness(device, INTENSITY_MAX) < 0)
+        return -1;
 
+    pr_debug("max7219 init end\r\n");
+    return 0;
 }
 
 static int max7219_probe(struct spi_device *spi)
 {
     pr_debug("max7219_probe begin!\r\n");
+    // 保存device指针
     max7219_device = spi;
-    pr_debug("max7219_probe end!\r\n");
+
+    // show MODE
+    pr_debug("spi device mode: [%u]\r\n", spi->mode);
 
     // 初始化max7219
     max7219_init(spi);
+
+    pr_debug("max7219_probe end!\r\n");
+
+    return 0;
 }
 
 static struct spi_driver max7219_driver = {
-    .id_table = &max7219_id,
+    .driver = {
+        .name = "spi_max7219",
+        .owner = THIS_MODULE,
+        .of_match_table = max7219_of_id
+    },
+    .id_table = max7219_id,
     .probe = &max7219_probe
 };
 
@@ -51,23 +118,27 @@ static int max7219_misc_fop_open(struct inode *i, struct file *f)
 {
     pr_debug("max7219 open\r\n");
     f->private_data = max7219_device;
+
+    return 0;
 }
 
-static int max7219_misc_fop_close(struct inode *i, struct file *f)
+static int max7219_misc_fop_release(struct inode *i, struct file *f)
 {
-    pr_debug("max7219 close\r\n");
+    pr_debug("max7219 release\r\n");
 
+    return 0;
 }
 
 static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, size_t size, loff_t *off)
 {
     pr_debug("max7219 write\r\n");
 
+    return size;
 }
 
 struct file_operations max7219_misc_fops = {
     .open = &max7219_misc_fop_open,
-    .release = &max7219_misc_fop_close,
+    .release = &max7219_misc_fop_release,
     .write = &max7219_misc_fop_write
 };
 
