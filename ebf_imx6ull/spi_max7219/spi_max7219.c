@@ -57,6 +57,7 @@ static int max7219_clear(struct spi_device *device, uint8_t count)
 
 static int max7219_set_brightness(struct spi_device *device, uint8_t brightness)
 {
+    // 0x0f: 最大16个级别
     brightness &= 0x0f;
     if (max7219_write_reg(device, REG_INTENSITY, brightness) < 0) {
         return -1;
@@ -131,7 +132,21 @@ static int max7219_misc_fop_release(struct inode *i, struct file *f)
 
 static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, size_t size, loff_t *off)
 {
+    char k_buffer[16];
+    int ret;
+
     pr_debug("max7219 write\r\n");
+    if (size > 16)
+        size = 16;
+    ret = copy_from_user(k_buffer, buf, size);
+    if (ret < 0) {
+        pr_err("copy_from_user FAILED!\r\n");
+        return -EBADR;
+    }
+    pr_debug("msg: [%s]\r\n", k_buffer);
+
+    // 显示到数码管
+
 
     return size;
 }
