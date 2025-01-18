@@ -48,6 +48,7 @@ static int max7219_clear(struct spi_device *device, uint8_t count)
     int i;
     for(i = 0; i < count; i++) {
         if (max7219_write_reg(device, i+1, 0x00) < 0) {
+            pr_err("spi_write FAILED!\r\n");
             return -1;
         }
     }
@@ -132,12 +133,14 @@ static int max7219_misc_fop_release(struct inode *i, struct file *f)
 
 static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, size_t size, loff_t *off)
 {
-    char k_buffer[16];
+    char k_buffer[8];
     int ret;
+    int i;
+    int digi_buffer[8];
 
     pr_debug("max7219 write\r\n");
-    if (size > 16)
-        size = 16;
+    if (size > 8)
+        size = 8;
     ret = copy_from_user(k_buffer, buf, size);
     if (ret < 0) {
         pr_err("copy_from_user FAILED!\r\n");
@@ -146,7 +149,16 @@ static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, si
     pr_debug("msg: [%s]\r\n", k_buffer);
 
     // 显示到数码管
-
+    memset(digi_buffer, 0, sizeof(digi_buffer));
+    for (i = 0; i < ret; i++) {
+        digi_buffer[i] = k_buffer[i] - '0';
+    }
+    for(i = 0; i < 8; i++) {
+        if (max7219_write_reg(max7219_device, i+1, 3) < 0) {
+            pr_err("spi_write FAILED!\r\n");
+            return -1;
+        }
+    }
 
     return size;
 }
@@ -160,7 +172,8 @@ struct file_operations max7219_misc_fops = {
 struct miscdevice max7219_misc = {
     .name = "spi_max7219",
     .minor = MISC_DYNAMIC_MINOR,
-    .fops = &max7219_misc_fops
+    .fops = &max7219_misc_fops,
+    .mode = O_RDWR
 };
 
 static int __init spi_max7219_init(void)
@@ -188,9 +201,11 @@ static void __exit spi_max7219_exit(void)
 {
     pr_debug("spi_max7219_exit\r\n");
 
-    pr_debug("i2c_del_driver begin\r\n");
-    pr_debug("i2c_del_driver end\r\n");
+    misc_deregister(&max7219_misc);
 
+    pr_debug("spi_unregister_driver begin\r\n");
+    spi_unregister_driver(&max7219_driver);
+    pr_debug("spi_unregister_driver end\r\n");
 }
 
 MODULE_LICENSE("GPL");

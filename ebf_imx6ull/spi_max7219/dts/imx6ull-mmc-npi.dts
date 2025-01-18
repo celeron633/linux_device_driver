@@ -421,7 +421,7 @@
 	#size-cells = <0>; 
 	max7219@0 {
 		compatible = "max7219";
-		spi-max-frequency = <20000000>;
+		spi-max-frequency = <400000>;
 		reg = <0>;
 	};
 };
