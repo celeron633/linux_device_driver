@@ -246,16 +246,42 @@ static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, si
         k_buffer[size-1] = 0;
     pr_debug("msg: [%s], ret: [%d], size: [%d]\r\n", k_buffer, ret, size);
 
+    // 清零
+    max7219_clear(max7219_device, 0x08);
     // 显示到数码管
     max7219_display_text(k_buffer, 0);
 
     return size;
 }
 
+long max7219_misc_fop_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
+{
+    int ret;
+    pr_debug("max7219 ioctl, cmd: [%d], arg: [%ld]\r\n", cmd, arg);
+
+    switch (cmd)
+    {
+    case 10:
+        pr_debug("set brightness to [%ld]\r\n", arg);
+        ret = max7219_set_brightness(max7219_device, arg);
+        if (ret < 0) {
+            return -EAGAIN;
+        }
+        break;
+    
+    default:
+        break;
+    }
+
+    return 0;
+}
+
 struct file_operations max7219_misc_fops = {
     .open = &max7219_misc_fop_open,
     .release = &max7219_misc_fop_release,
-    .write = &max7219_misc_fop_write
+    .write = &max7219_misc_fop_write,
+    .compat_ioctl = &max7219_misc_fop_ioctl,
+    .unlocked_ioctl = &max7219_misc_fop_ioctl
 };
 
 struct miscdevice max7219_misc = {
