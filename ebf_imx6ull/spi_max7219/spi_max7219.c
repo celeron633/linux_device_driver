@@ -29,6 +29,7 @@ static struct of_device_id max7219_of_id[] = {
     {.compatible = "max7219", .name = "max7219"}
 };
 
+// 写max7219寄存器
 static int max7219_write_reg(struct spi_device *device, uint8_t opcode, uint8_t data)
 {
     uint8_t buf[2];
@@ -43,6 +44,7 @@ static int max7219_write_reg(struct spi_device *device, uint8_t opcode, uint8_t 
     return 0;
 }
 
+// 清屏
 static int max7219_clear(struct spi_device *device, uint8_t count)
 {
     int i;
@@ -56,6 +58,7 @@ static int max7219_clear(struct spi_device *device, uint8_t count)
     return 0;
 }
 
+// 设置亮度
 static int max7219_set_brightness(struct spi_device *device, uint8_t brightness)
 {
     // 0x0f: 最大16个级别
@@ -67,6 +70,7 @@ static int max7219_set_brightness(struct spi_device *device, uint8_t brightness)
     return 0;
 }
 
+// max7219初始化
 static int max7219_init(struct spi_device *device)
 {
     pr_debug("max7219 init begin\r\n");
@@ -89,6 +93,7 @@ static int max7219_init(struct spi_device *device)
     return 0;
 }
 
+// platform driver的probe函数
 static int max7219_probe(struct spi_device *spi)
 {
     pr_debug("max7219_probe begin!\r\n");
@@ -131,34 +136,114 @@ static int max7219_misc_fop_release(struct inode *i, struct file *f)
     return 0;
 }
 
+// 字符转换为数码管的编码
+static unsigned char max7219_lookup_code(char ch, unsigned int dp)
+{
+    int dot = 0;
+    int i;
+
+    if (dp)
+        dot = 1;
+    // 大小写
+    if (ch >= 35 && ch <= 44) {
+        ch += 13;
+        dot = 1;
+    }
+    for (i = 0; MAX7219_Font[i].ascii; i++) {
+        if (ch == MAX7219_Font[i].ascii) {
+            char tmp_seg = MAX7219_Font[i].segs;
+            if (dot)
+                tmp_seg |= (1<<7);
+
+            return tmp_seg;
+        }
+    }
+    return 0;
+}
+
+// max7219显示字符
+static int max7219_display_char(int index, char value, uint8_t dp)
+{
+    if (max7219_write_reg(max7219_device, index, max7219_lookup_code(value, dp)) < 0) {
+        pr_err("spi_write FAILED!\r\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+// 转换字符串到max7219编码数组并输出
+static int max7219_display_text(const char *text, int mode)
+{
+    char trimStr[16] = {0};
+    int  decimal[16] = {0};
+    int err_flag = 0;
+    int i = 0, j = 0;
+
+
+    int len = strlen(text);
+    if (len > 16)
+        len = 16;
+    
+    for (; i < len; i++) {
+        if (text[i] == '.') {
+            if (j > 1) {
+                decimal[j-1] = 1;
+            } else {
+                decimal[0] = 1;
+            }
+        } else {
+            trimStr[j] = text[i];
+            j++;
+        }
+    }
+
+    if (j > 8)
+        j = 8;
+    switch (mode) {
+        case 0:
+            for (i = 0; i < j; i++) {
+                if (max7219_display_char(j-i, trimStr[i], decimal[i]) < 0) {
+                    err_flag = 1;
+                }
+            }
+            break;
+        case 1:
+            for (i = 0; i < j; i++) {
+                if (max7219_display_char(8-i, trimStr[i], decimal[i]) < 0) {
+                    err_flag = 1;
+                }
+            }
+            break;
+        default:
+            break;
+    }
+
+    if (err_flag == 1) {
+        pr_err("spi error while sending data!\r\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, size_t size, loff_t *off)
 {
-    char k_buffer[8];
+    char k_buffer[16];
     int ret;
-    int i;
-    int digi_buffer[8];
 
     pr_debug("max7219 write\r\n");
-    if (size > 8)
-        size = 8;
+    if (size > 16)
+        size = 16;
     ret = copy_from_user(k_buffer, buf, size);
     if (ret < 0) {
         pr_err("copy_from_user FAILED!\r\n");
-        return -EBADR;
+        return -EBUSY;
     }
-    pr_debug("msg: [%s]\r\n", k_buffer);
+    pr_debug("msg: [%s], ret: [%d]\r\n", k_buffer, ret);
 
     // 显示到数码管
-    memset(digi_buffer, 0, sizeof(digi_buffer));
-    for (i = 0; i < ret; i++) {
-        digi_buffer[i] = k_buffer[i] - '0';
-    }
-    for(i = 0; i < 8; i++) {
-        if (max7219_write_reg(max7219_device, i+1, 3) < 0) {
-            pr_err("spi_write FAILED!\r\n");
-            return -1;
-        }
-    }
+    max7219_display_text(k_buffer, 0);
 
     return size;
 }
