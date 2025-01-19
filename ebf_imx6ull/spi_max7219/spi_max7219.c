@@ -232,6 +232,7 @@ static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, si
     char k_buffer[16];
     int ret;
 
+    memset(k_buffer, 0x00, sizeof(k_buffer));
     pr_debug("max7219 write\r\n");
     if (size > 16)
         size = 16;
@@ -240,7 +241,10 @@ static ssize_t max7219_misc_fop_write(struct file *f, const char __user *buf, si
         pr_err("copy_from_user FAILED!\r\n");
         return -EBUSY;
     }
-    pr_debug("msg: [%s], ret: [%d]\r\n", k_buffer, ret);
+    // 去掉\r\n
+    if (size >= 1)
+        k_buffer[size-1] = 0;
+    pr_debug("msg: [%s], ret: [%d], size: [%d]\r\n", k_buffer, ret, size);
 
     // 显示到数码管
     max7219_display_text(k_buffer, 0);
